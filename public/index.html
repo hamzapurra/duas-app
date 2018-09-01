@@ -1,0 +1,139 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="/styles/reset.css">
+
+    <style>
+      @font-face {
+        font-family: 'QuranFont';
+        src: url('/fonts/me_quran.ttf') format('truetype');
+      }
+    </style>
+
+    <style>
+      .dua {
+        margin: 1rem;
+        padding: 2rem;
+        border: 1px solid gray;
+      }
+
+      .dua__text {
+        direction: rtl;
+        font-size: 2rem;
+        line-height: 4rem;
+        word-spacing: 1rem;
+        padding-bottom: 1rem;
+        font-family: 'QuranFont', sans-serif;
+      }
+
+      .dua__meta {
+        padding-bottom: 1rem;
+      }
+
+      .translation__name {
+        color: gray;
+        font-style: italic;
+        padding-bottom: 0.25rem;
+      }
+
+      .translation__text {
+        padding-bottom: 1rem;
+      }
+    </style>
+
+    <!-- Load React. -->
+    <!-- Note: when deploying, replace "development.js" with "production.min.js". -->
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+
+    <script type="text/babel">
+      class DuaContainer extends React.Component {
+        state = {
+          ready: false,
+          text: '',
+          translations: []
+        }
+
+        componentDidMount () {
+          const { chapter, verse } = this.props
+
+          fetch(`/api/verses/${chapter}/${verse}`)
+            .then((response) => response.json())
+            .then((text) => {
+              this.setState({
+                ready: true,
+                text
+              })
+            })
+
+          fetch(`/api/translations/${chapter}/${verse}`)
+            .then((response) => response.json())
+            .then((translations) => {
+              this.setState({
+                ready: true,
+                translations
+              })
+            })
+        }
+
+        render () {
+          return this.state.ready
+            ? <Dua
+                {...this.props}
+                text={this.state.text}
+                translations={this.state.translations}
+              />
+            : <div>Loading...</div>
+        }
+      }
+
+      const Dua = ({ text, chapter, verse, start, translations = [] }) => (
+        <div className="dua">
+          <div className="dua__text">{text}</div>
+
+          <div className="dua__meta">
+            <a href={`https://quran.com/${chapter}/${verse}`}>
+              Chapter {chapter} - Verse {verse}
+            </a>
+          </div>
+
+          <div className="translations">
+            {translations.map(({ name, text }) => (
+              <div key={name} className="translation">
+                <div className="translation__name">{name}</div>
+                <div className="translation__text" dangerouslySetInnerHTML={{ __html: text }}></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+
+      class App extends React.Component {
+        state = {
+          verses: [
+            { chapter: 7, verse: 23 },
+            { chapter: 11, verse: 47 },
+            { chapter: 71, verse: 28 }
+          ]
+        }
+
+        render () {
+          return (
+            this.state.verses.map((verse) => (
+              <DuaContainer
+                key={`${verse.chapter}-${verse.verse}`}
+                {...verse}
+              />
+            ))
+          )
+        }
+      }
+
+      const root = document.querySelector('#root')
+      ReactDOM.render(<App />, root)
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
